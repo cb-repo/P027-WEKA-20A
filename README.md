@@ -1,4 +1,4 @@
-# WEKA - 20A v2.1
+# WEKA - 20A v2.2
 
 <img src="assets/WEKA_Front.JPG" width="300"> <img src="assets/WEKA_Back.JPG" width="300">
 
@@ -24,8 +24,7 @@ Developed, assembled, and tested in [Christchurch, New Zealand ](https://www.goo
 
 - **Dimensions:** 30x20x4 mm
 - **Weight:** 3g *excluding wires*
-- **Input Voltage - Min:** 6V
-- **Input Voltage - Max:** 6S LiHv (26.1V)
+- **Voltage Input:** 2-6S LiHV (6.0-26.1V)
 - **Motor Output:** 20A per channel 
 - **BEC:** 5V, 1A. Designed to power the radio reciever but no motors or servos
 - **Signal Input:** Servo PWM
@@ -33,27 +32,41 @@ Developed, assembled, and tested in [Christchurch, New Zealand ](https://www.goo
 ## USAGE
 ### Status LEDs
 
-There are 3 LEDs on the WEKA (1x red, 2x blue). The red LED is in the center and a blue LED on edge beside each output.
- - **Normal Operation**
-    - **No Power** Red: OFF, 2x Blue: OFF
-    - **Standby** Red: ON, 2x Blue: OFF
-    - **Driving** Red: ON, 2x Blue: ON. Each blue LED will illuminate when their corresponsing motor output is being driven.
- - **Fault Conditions**
-    - **Signal-Input** RED: ON, 2x Blue: ALTERNATING FLASH
-    - **Under-Voltage** RED: ON, 2x Blue: FLASH (1Hz)
-    - **Over-Temperature** RED: ON, 2x Blue: FAST FLASH (5Hz)
- - **Calibration** RED: ON, 2x Blue: PATTERN. (See Calibration section for specific LED patterns) 
+There are 3 LEDs on the WEKA (1x red, 2x blue). The red LED is in the center and a blue LEDs are on each edge beside the motor outputs. See table below to detail LED behaviour:
+
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br> State| Red <br> LED   | Blue <br> LEDs | | 
+| :---:                     | :---:     | :---:     | :--- 
+| No Power                  | OFF       | OFF       |  
+| Standby                   | ON        | OFF       |         
+| Driving                   | ON        | ON        | Each blue LED will immunimate when their corresponding input is being driven. 
+| Fault <br> Signal-Input        | ON        | ALTERNATING FLASH       | 1Hz  
+| Fault <br> Under-Voltage       | ON        | FLASH         | 1Hz
+| Fault <br> Over-Temp    | ON        | FAST FLASH    | 5Hz 
+| Calibration               | ON        | PATTERN       | See Calibration section for specific LED patterns
 
 ### Fault Conditions
 
-In all fault conditions the input signals are ignored and both drive outputs are stopped. 
-Once the fault condition is resolved, functionality will resume immediately. 
- - **Under-Voltage:** An under-voltage event occurs if the battery voltage falls below 3.1V (per cell). 
- - **Over-Temperature:** An over-temperature event occurs when the temperature sense circuit reaches 100°C.
- - **Signal-Input:** A signal-input fault occurs if either S1 or S2 inputs from the radio is lost. *Note: You still need to set the failsafe on the radio reciever to handle a loss of connection between the reciever and transmitter*.
+WEKA continuously monitors for several fault conditions during operation. The monitored faults, listed from highest to lowest priority, are:
 
-### Calibration
-###### Calibration Parameters
+1. **Over-Temperature:** An over-temperature fault occurs when the primary sense circuit reaches 100°C. 
+
+2. **Under-Voltage:** An under-voltage fault occurs if the battery voltage falls below 3.0V (per cell).
+
+    Important note: When WEKA powers on, it automatically detects how many cells your battery has to set the appropriate low voltage level. Some battery cell counts have a voltage overlap with adjacent counts, see table below. So, the WEKA then assumes the battery is more charged when powering on to solve the overlap. If you start up with a low battery, it might detect and set the undervoltage threshold too low. To avoid issues, we recommend powering on with a fully-charged battery. 
+
+    | Battery Cells | Low Voltage   | High Voltage  | At Risk   | Percentage Overlap |
+    | :---:         | :---:         | :---:         | :---:     | :---: |
+    | 2s            | 6.0V          | 8.70V         | No        | n/a |
+    | 3s            | 9.0V          | 13.05V        | No        | n/a |
+    | 4s            | 12.0V         | 17.40V        | Yes       | 19.4% |
+    | 5s            | 15.0V         | 21.75V        | Yes       | 35.6% |
+    | 6s            | 18.0V         | 26.1V         | Yes       | 46.3% |
+
+ - **Signal-Input:** A signal-input fault occurs if either S1 or S2 inputs from the radio is lost. 
+ 
+    *Note: You still need to set the failsafe on the radio reciever to handle a loss of connection between the reciever and transmitter*.
+
+## Calibration
 
 The WEKA ESC has a number of parameters that are auto-detected during the calibration process. These are:
 
@@ -67,48 +80,58 @@ The WEKA ESC has a number of parameters that are auto-detected during the calibr
     - Any input channel can be reversed.
     - eg: No resoldering the motor wires or reversing the signal in radio.
 
-The default calibration parameters from factory are:
+If at any point the calibration is corrupted, the WEKA will roll back to the factory settings:
 - **Driving Mode:** ARCADE
-- **Signal Mapping:** 
-    - Signal 1 = Throttle 
-    - Signal 2 = Steering
-- **Input Inversion:**
-    - Signal 1 = OFF
-    - Signal 2 = OFF
+- **Motor A:**
+    - Channel: 1
+    - Reverse: False
+- **Motor B:**
+    - Channel: 2
+    - Reverse: False
 
-###### Calibration Procedure
+### Calibration Procedure
 
- 1. Install the motors in the robot, in the orientation you want to use them. *This will allow auto-detection of the input mapping and inversion during the following Simon-says process.*
+Please read this section in full before initiating calibration for the first time. The process moves quickly once started, but becomes intuitive after your first go around.
 
- 2. Connect the radio reciever and motors to the WEKA. *Ensure the transmitter has been bound to the radio reciever prior to continuing calibration*.
+Calibration settings are only saved once the entire procedure is completed. If you make a mistake, just power cycle the device and start again, nothing is saved until the end. 
 
- 3. The following Simon-says calibration requires the motors rotate... if the wheels are touching the ground it will drive. So prepare your robot/setup to allow this.
+1. Preparation
+    - Install the motors in the orientation you want in the robot. This allows the system to correctly detect mapping and direction during calibration.
+    - Connect the motors and radio receiver to the WEKA. 
+    - Ensure the receiver is bound to your transmitter.
+    - Make sure the robot is elevated or safe to move within a test-box. The robot will twitch the during calibration.
 
- 4. Turn WEKA ON and, within 10 seconds, trigger the calibration procedure by:
-    - Wiggle any stick on the remote (that's connected to the WEKA) back and forward 20 times. 
-    Make sure to push the stick from CENTER all the way to MAX/MIN when wiggling. 
+2. Entering Calibraiton Mode
+    - Power on the WEKA.
+    - Within 10 seconds, wiggle any connected input stick 20 times (must be wiggled full forward and full reverse).
+    - Calibration will only begin if both input channels are detected and the WEKA is not in a fault condition.
+    - Both blue LEDs will pulse 10× to confirm entering calibration mode.
+    - While the LEDs are pulsing, the user must stop wiggling the stick and return all inputs to their neutral positions.
+    - Once the LEDs have finished pulsing, they will remain solid and wait for the user to start the calibratrion.
 
- 5. Both blue LEDs will pulse 10 times and then stay fully illumintaed to indicated the WEKA has entered CALIBRATION mode and is ready to begin. *The rest of the calibration happens pretty quickly so please read step 6 before proceeding*.
+3. Drive Mode Detection.
+    
+    This stage uses a "Simon-says" process that twitches the motors (moves the robot in a direction) and getting the user to input that motion back on the remote. For example:
+    - Robot twitches forward: Simualtaneously push both sticks forward for tank drive, or push one stick forward for arcade.
+    - Robot twitches left: Simualtaneously push left stick back and right forward for tank, or push one stick left for arcade.
 
- 6. To start, push any stick on the transmitter to MAX and back to CENTER. Both blue LED's will subsequently turn OFF.
-    - Two tests are run back-to-back. Each test will twitch both motors and cause the robot to move forward, reverse, left, or right. 
-    The user must then input that motion back into the remote. eg:
-        - Robot twitches forward: Tank drive, simualtaneously push both sticks forward. Arcarde drive, push one stick forward.
-        - Robot twitches left: Tank drive, simualtaneously push left stick back and right forward. Arade drive, push one stick left
-    - The process for each test is:
-        1. Both blue LED's turn OFF
-        2. The motors twitch
-        3. One blue LED turns ON
-        4. User presses input(s) to MAX/MIN
-        5. Second blue LED turns ON 
-        6. User returns input(s) back to CENTER
-        7. Both LED's pulse 3 times to indicate success
-        8. Repeat for second test
+    The steps for this stage are:
+    - Both LEDs are ON from step 2.
+    - Move any stick to MAX and back to CENTER to start.
+    - The Simon-says process is: 
+        1. Both LEDs turn OFF.
+        2. Robot twitch in a direction.
+        3. One LED turns ON.
+        4. Match that robot motion on your radio using the desired driving style.
+        5. Second LED turns ON.
+        6. Return stick(s) to CENTER.
+        7. Both LEDs turn OFF.
+        8. Both LEDs pulse 3× to confirm completion of current step.
+    - The Simon-says process repeats for a second direction.
 
- 9. Calibration Complete
-     - Both blue LEDs will pulse 10 times to indicate a successfull calibration.
-     - Once the LED pulses are complete, the WEKA immediately enters Run mode with the new calibration.
-     - If the WEKA is turned OFF before completing the calibration process, NONE of the new parameters are stored and it will revert to the previous configuraion. 
+ 4. Calibration Complete
+     - Both blue LEDs pulse 10× to indicate completion of calibration and the parameters are saved.  
+     - The WEKA immediately enters Normal Operation using the new calibration settings.
 
 ## DISCLIAMER
 
